@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mimir ZzZ - Sonidos para Concentración y Sueño</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#050510">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Aplicación de sonidos ambientales premium para mejorar la concentración, relajarse y dormir mejor.">
+    
+    <!-- manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Partículas de fondo animadas -->
+    <canvas id="particles-bg"></canvas>
+
+    <div class="app-container">
+        <!-- Cabecera -->
+        <header class="app-header">
+            <h1>Mimir ZzZ</h1>
+        </header>
+
+        <!-- Contenido principal: Grid de sonidos -->
+        <main class="sound-grid">
+            <!-- Los botones de sonido se inyectarán vía JS o se crearán estáticos aquí -->
+            <button class="sound-card" data-sound="white" aria-label="Ruido Blanco">
+                <div class="icon">🧊</div>
+                <span>Ruido Blanco</span>
+            </button>
+            <button class="sound-card" data-sound="pink" aria-label="Ruido Rosa">
+                <div class="icon">🌸</div>
+                <span>Ruido Rosa</span>
+            </button>
+            <button class="sound-card" data-sound="brown" aria-label="Ruido Marrón">
+                <div class="icon">🪵</div>
+                <span>Ruido Marrón</span>
+            </button>
+            <button class="sound-card" data-sound="green" aria-label="Ruido Verde">
+                <div class="icon">🌿</div>
+                <span>Ruido Verde</span>
+            </button>
+            
+            <!-- Placeholders para audios mp3 (Lluvia, Olas, Fuego, Lofi, etc) -->
+            <button class="sound-card disabled" data-sound="rain" aria-label="Lluvia (Próximamente)">
+                <div class="icon">🌧️</div>
+                <span>Lluvia</span>
+            </button>
+            <button class="sound-card disabled" data-sound="waves" aria-label="Olas (Próximamente)">
+                <div class="icon">🌊</div>
+                <span>Olas</span>
+            </button>
+            <button class="sound-card disabled" data-sound="fire" aria-label="Fuego (Próximamente)">
+                <div class="icon">🔥</div>
+                <span>Fuego</span>
+            </button>
+            <button class="sound-card disabled" data-sound="lofi" aria-label="Lofi (Próximamente)">
+                <div class="icon">🎧</div>
+                <span>Lofi</span>
+            </button>
+            <button class="sound-card disabled" data-sound="cafe" aria-label="Cafetería (Próximamente)">
+                <div class="icon">☕</div>
+                <span>Cafetería</span>
+            </button>
+            <button class="sound-card disabled" data-sound="fan" aria-label="Ventilador (Próximamente)">
+                <div class="icon">💨</div>
+                <span>Ventilador</span>
+            </button>
+        </main>
+
+        <!-- Barra inferior de control (Aparece cuando hay sonido activo) -->
+        <div class="bottom-controls hidden" id="bottom-controls">
+            <div class="active-sound-info">
+                <span id="active-sound-icon"></span>
+                <span id="active-sound-name">Reproduciendo</span>
+            </div>
+            
+            <div class="controls-actions">
+                <div class="volume-control">
+                    <span>🔉</span>
+                    <input type="range" id="master-volume" min="0" max="1" step="0.01" value="0.5">
+                </div>
+                
+                <button id="btn-timer" class="control-btn" aria-label="Temporizador">
+                    ⏱️ <span id="timer-display"></span>
+                </button>
+                
+                <button id="btn-stop" class="control-btn play-pause active" aria-label="Detener">
+                    ⏹️
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Modal del Temporizador -->
+    <div class="timer-modal hidden" id="timer-modal">
+        <div class="timer-modal-content">
+            <div class="modal-header">
+                <h2>Temporizador</h2>
+                <button id="close-timer" class="close-btn">✖</button>
+            </div>
+            
+            <div class="timer-presets">
+                <button class="preset-btn" data-time="15">15m</button>
+                <button class="preset-btn" data-time="30">30m</button>
+                <button class="preset-btn" data-time="60">1h</button>
+                <button class="preset-btn" data-time="120">2h</button>
+            </div>
+            
+            <div class="timer-custom">
+                <label for="custom-time">Personalizado (minutos):</label>
+                <div class="custom-input-wrapper">
+                    <input type="number" id="custom-time" min="1" max="999" placeholder="45">
+                    <button id="btn-start-timer" class="primary-btn">Iniciar</button>
+                </div>
+            </div>
+            
+            <button id="btn-cancel-timer" class="danger-btn hidden">Cancelar Temporizador</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/noise-generator.js"></script>
+    <script src="js/audio-engine.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
