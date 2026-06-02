@@ -1,250 +1,230 @@
 class AudioEngine {
     constructor() {
-        this.ctx = null;
-        this.noiseGen = null;
-        this.masterGain = null;
+        // Usamos dos reproductores HTML5 Audio para lograr un crossfade fluido
+        this.players = [new Audio(), new Audio()];
+        this.players.forEach(p => {
+            p.loop = true;
+            p.preload = "auto";
+        });
         
-        this.activeSourceNode = null;
+        this.activePlayerIdx = 0;
         this.currentSoundType = null;
         this.isPlaying = false;
         
-        this.fadeDuration = 0.5; // segundos para el fade in/out
+        this.fadeDuration = 600; // milisegundos para el crossfade
+        this.fadeIntervals = [];
         
-        // Cache de buffers cargados/generados para no recalcular
-        this.bufferCache = {};
-
         // Volúmenes relativos ajustados para que todos suenen al mismo nivel percibido
         this.soundVolumes = {
-            white: 0.15,  // El ruido blanco es de muy alta frecuencia y energía percibida
-            brown: 0.90,  // El ruido marrón es muy sordo/grave y requiere más amplitud
-            green: 0.45,  // El ruido verde (bosque/naturaleza) tiene nivel medio
-            rain: 0.55    // La lluvia tiene frecuencias mixtas y suena agradable a nivel medio
+            white: 0.15,
+            brown: 0.90,
+            green: 0.45,
+            rain: 0.55
         };
+        
+        // Cargar volumen de localStorage
+        const savedVol = localStorage.getItem('mimir_vol');
+        this.masterVolumeValue = savedVol !== null ? parseFloat(savedVol) : 0.5;
     }
 
     /**
-     * Inicializa el AudioContext. Debe llamarse como respuesta a un evento de usuario (clic).
+     * Mantenido por compatibilidad con inicializaciones en app.js
      */
     init() {
-        if (!this.ctx) {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioContext();
-            this.noiseGen = new NoiseGenerator(this.ctx);
-            
-            this.masterGain = this.ctx.createGain();
-            this.masterGain.connect(this.ctx.destination);
-            // Volumen inicial (puede ser sobrescrito por localStorage)
-            const savedVol = localStorage.getItem('mimir_vol');
-            this.masterGain.gain.value = savedVol !== null ? parseFloat(savedVol) : 0.5;
-            
-            console.log("AudioContext inicializado:", this.ctx.state);
-        }
-        
-        // ¡Importante para iOS! Si está suspendido por políticas de auto-reproducción, reanudarlo
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume().then(() => {
-                console.log("AudioContext reanudado con éxito.");
-                this.playSilenceToUnlock();
-            }).catch(err => {
-                console.error("Error al reanudar AudioContext:", err);
-            });
-        } else {
-            this.playSilenceToUnlock();
-        }
+        console.log("AudioEngine inicializado con soporte HTML5 Audio (iOS background y modo silencio bypass).");
     }
 
     /**
-     * Reproduce un buffer silencioso para desbloquear permanentemente el AudioContext en iOS Safari
+     * Mantenido para desbloqueo silencioso compatible
      */
     playSilenceToUnlock() {
-        try {
-            const buffer = this.ctx.createBuffer(1, 1, 22050);
-            const source = this.ctx.createBufferSource();
-            source.buffer = buffer;
-            source.connect(this.ctx.destination);
-            source.start(0);
-            console.log("AudioContext desbloqueado con búfer silencioso.");
-        } catch (e) {
-            console.warn("No se pudo reproducir el búfer de silencio para desbloquear iOS:", e);
-        }
+        // En HTML5 Audio, el primer play inicia la reproducción nativa dentro del user gesture.
     }
 
     /**
-     * Pre-carga y decodifica todos los archivos de audio en segundo plano.
-     * Esto evita retrasos al hacer clic y permite una reproducción síncrona en iOS.
+     * Pre-carga todos los archivos de audio en segundo plano.
      */
-    async preloadSounds() {
-        if (!this.ctx) {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioContext();
-            this.noiseGen = new NoiseGenerator(this.ctx);
-            
-            this.masterGain = this.ctx.createGain();
-            this.masterGain.connect(this.ctx.destination);
-            const savedVol = localStorage.getItem('mimir_vol');
-            this.masterGain.gain.value = savedVol !== null ? parseFloat(savedVol) : 0.5;
-        }
-
+    preloadSounds() {
         const sounds = ['white', 'brown', 'green', 'rain'];
-        for (const sound of sounds) {
-            this.loadSoundBuffer(sound).catch(err => {
-                console.warn(`Error pre-cargando sonido '${sound}':`, err);
-            });
-        }
+        sounds.forEach(sound => {
+            let url = null;
+            switch (sound) {
+                case 'white': url = 'audio/White-noise.mp3'; break;
+                case 'brown': url = 'audio/Marron.mp3'; break;
+                case 'green': url = 'audio/Green-noise.mp3'; break;
+                case 'rain': url = 'audio/Lluvia.mp3'; break;
+            }
+            if (url) {
+                const tempAudio = new Audio();
+                tempAudio.preload = "auto";
+                tempAudio.src = url;
+            }
+        });
     }
 
     /**
-     * Carga y decodifica un archivo de audio MP3 desde la carpeta local /audio/ de forma asíncrona.
+     * Método dummy para compatibilidad
      */
     async loadSoundBuffer(type) {
-        if (this.bufferCache[type]) {
-            return this.bufferCache[type];
-        }
-        
-        if (!this.loadingPromises) {
-            this.loadingPromises = {};
-        }
-        if (this.loadingPromises[type]) {
-            return this.loadingPromises[type];
-        }
+        return true;
+    }
 
+    /**
+     * Reproduce un sonido específico. Si ya hay uno sonando, hace crossfade.
+     */
+    async playSound(type, metadata) {
+        if (this.isPlaying && this.currentSoundType === type) return true;
+        
+        const nextPlayerIdx = 1 - this.activePlayerIdx;
+        const nextPlayer = this.players[nextPlayerIdx];
+        const prevPlayer = this.players[this.activePlayerIdx];
+        
         let url = null;
         switch (type) {
             case 'white': url = 'audio/White-noise.mp3'; break;
             case 'brown': url = 'audio/Marron.mp3'; break;
             case 'green': url = 'audio/Green-noise.mp3'; break;
             case 'rain': url = 'audio/Lluvia.mp3'; break;
-            default: return null;
+            default: return false;
         }
-
-        const loadPromise = (async () => {
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const arrayBuffer = await response.arrayBuffer();
-                const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-                this.bufferCache[type] = audioBuffer;
-                return audioBuffer;
-            } catch (error) {
-                console.error(`Error al cargar o decodificar el audio para '${type}':`, error);
-                return null;
-            } finally {
-                delete this.loadingPromises[type];
-            }
-        })();
-
-        this.loadingPromises[type] = loadPromise;
-        return loadPromise;
-    }
-
-    /**
-     * Reproduce un sonido específico de forma asíncrona. Si ya hay uno sonando, hace crossfade.
-     */
-    async playSound(type, metadata) {
-        if (!this.ctx) this.init();
         
-        const buffer = await this.loadSoundBuffer(type);
-        if (!buffer) {
-            console.warn("Sonido no soportado o en desarrollo:", type);
-            return false;
+        nextPlayer.src = url;
+        const relativeVolume = this.soundVolumes[type] || 1.0;
+        const targetVol = relativeVolume * this.masterVolumeValue;
+        
+        nextPlayer.volume = 0.001; // Iniciar en silencio para el fade-in
+        
+        const playPromise = nextPlayer.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.error("Error al reproducir HTML5 Audio:", error);
+            });
         }
-
-        // Si ya está sonando el mismo, no hacemos nada
-        if (this.isPlaying && this.currentSoundType === type) return true;
-
-        this.stopCurrentSound(); // Detiene con fade-out rápido
-
-        // Crear nuevo nodo fuente
-        this.activeSourceNode = this.ctx.createBufferSource();
-        this.activeSourceNode.buffer = buffer;
-        this.activeSourceNode.loop = true;
-
-        // Crear ganancia local para fade-in
-        const localGain = this.ctx.createGain();
-        localGain.gain.setValueAtTime(0.001, this.ctx.currentTime); // Empezar en silencio (evitar click)
         
-        this.activeSourceNode.connect(localGain);
-        localGain.connect(this.masterGain);
-
-        this.activeSourceNode.start();
+        // Ejecutar crossfade
+        this.crossfade(prevPlayer, nextPlayer, targetVol);
         
-        // Obtener volumen relativo calibrado para este sonido
-        const targetVolume = this.soundVolumes[type] || 1.0;
-        
-        // Fade-in exponencial hacia el volumen calibrado
-        localGain.gain.exponentialRampToValueAtTime(targetVolume, this.ctx.currentTime + this.fadeDuration);
-
-        // Guardamos referencia a la ganancia en el nodo para poder hacer fade-out
-        this.activeSourceNode.fadeGain = localGain;
-
+        this.activePlayerIdx = nextPlayerIdx;
         this.currentSoundType = type;
         this.isPlaying = true;
         
         this.updateMediaSession(metadata);
-
         return true;
+    }
+
+    /**
+     * Realiza un fundido cruzado (crossfade) entre dos reproductores HTML5 Audio.
+     */
+    crossfade(prevPlayer, nextPlayer, targetVolume) {
+        this.fadeIntervals.forEach(interval => clearInterval(interval));
+        this.fadeIntervals = [];
+        
+        const steps = 30;
+        const stepTime = this.fadeDuration / steps;
+        
+        const nextVolStep = targetVolume / steps;
+        const prevStartVol = this.isPlaying ? prevPlayer.volume : 0;
+        const prevVolStep = prevStartVol / steps;
+        
+        let currentStep = 0;
+        
+        const interval = setInterval(() => {
+            currentStep++;
+            
+            // Subir volumen del nuevo
+            nextPlayer.volume = Math.max(0, Math.min(1, nextVolStep * currentStep));
+            
+            // Bajar volumen del anterior
+            if (this.isPlaying) {
+                prevPlayer.volume = Math.max(0, prevStartVol - (prevVolStep * currentStep));
+            }
+            
+            if (currentStep >= steps) {
+                nextPlayer.volume = targetVolume;
+                if (this.isPlaying) {
+                    prevPlayer.volume = 0;
+                    prevPlayer.pause();
+                }
+                clearInterval(interval);
+            }
+        }, stepTime);
+        
+        this.fadeIntervals.push(interval);
     }
 
     /**
      * Detiene el sonido actual con un fade-out suave.
      */
     stopCurrentSound(customFadeTime = null) {
-        if (!this.activeSourceNode || !this.isPlaying) return;
-
-        const nodeToStop = this.activeSourceNode;
-        const gainNode = nodeToStop.fadeGain;
+        if (!this.isPlaying) return;
+        
+        const player = this.players[this.activePlayerIdx];
         const fadeTime = customFadeTime !== null ? customFadeTime : this.fadeDuration;
-
-        // Limpiar el estado actual inmediatamente para que la app sepa que se detuvo,
-        // aunque el audio tarde un poco más en apagarse.
-        this.activeSourceNode = null;
-        this.currentSoundType = null;
+        
         this.isPlaying = false;
-
-        // Fade-out
-        const currentTime = this.ctx.currentTime;
-        gainNode.gain.cancelScheduledValues(currentTime);
-        gainNode.gain.setValueAtTime(gainNode.gain.value, currentTime);
+        this.currentSoundType = null;
         
-        // Evitamos bajar a 0 exacto con exponentialRamp, usamos un valor muy bajo
-        gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + fadeTime);
+        this.fadeIntervals.forEach(interval => clearInterval(interval));
+        this.fadeIntervals = [];
         
-        // Detener el nodo después del fade
-        nodeToStop.stop(currentTime + fadeTime);
+        const steps = 20;
+        const stepTime = fadeTime / steps;
+        const startVol = player.volume;
+        const volStep = startVol / steps;
+        let currentStep = 0;
         
-        // Limpiar Media Session
+        const interval = setInterval(() => {
+            currentStep++;
+            player.volume = Math.max(0, startVol - (volStep * currentStep));
+            
+            if (currentStep >= steps) {
+                player.volume = 0;
+                player.pause();
+                clearInterval(interval);
+            }
+        }, stepTime);
+        
+        this.fadeIntervals.push(interval);
+        
         if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = "paused";
         }
     }
 
     setMasterVolume(value) {
-        if (this.masterGain) {
-            // value debe estar entre 0 y 1
-            const clamped = Math.max(0, Math.min(1, value));
-            // Evitar clicks al cambiar volumen
-            this.masterGain.gain.setTargetAtTime(clamped, this.ctx.currentTime, 0.1);
+        this.masterVolumeValue = Math.max(0, Math.min(1, value));
+        
+        if (this.isPlaying) {
+            const player = this.players[this.activePlayerIdx];
+            const relativeVolume = this.soundVolumes[this.currentSoundType] || 1.0;
+            player.volume = relativeVolume * this.masterVolumeValue;
         }
     }
     
     fadeOutForTimer(durationSeconds) {
-         if (!this.isPlaying || !this.masterGain) return;
+         if (!this.isPlaying) return;
          
-         const currentTime = this.ctx.currentTime;
-         const currentVol = this.masterGain.gain.value;
+         const player = this.players[this.activePlayerIdx];
+         const startVol = player.volume;
+         const steps = 50;
+         const stepTime = (durationSeconds * 1000) / steps;
+         const volStep = startVol / steps;
+         let currentStep = 0;
          
-         this.masterGain.gain.cancelScheduledValues(currentTime);
-         this.masterGain.gain.setValueAtTime(currentVol, currentTime);
+         this.fadeIntervals.forEach(interval => clearInterval(interval));
+         this.fadeIntervals = [];
          
-         // Fade progresivo a 0
-         this.masterGain.gain.linearRampToValueAtTime(0.001, currentTime + durationSeconds);
+         const interval = setInterval(() => {
+             currentStep++;
+             player.volume = Math.max(0, startVol - (volStep * currentStep));
+             
+             if (currentStep >= steps) {
+                 this.stopCurrentSound(100);
+                 clearInterval(interval);
+             }
+         }, stepTime);
          
-         // Programar el stop completo
-         setTimeout(() => {
-             this.stopCurrentSound(0.1);
-             // Restaurar volumen base para la próxima vez
-             this.masterGain.gain.value = currentVol;
-         }, durationSeconds * 1000);
+         this.fadeIntervals.push(interval);
     }
 
     /**
@@ -266,13 +246,12 @@ class AudioEngine {
 
             // Controladores de SO
             navigator.mediaSession.setActionHandler('play', () => {
-                // El SO pide Play, pero nosotros no tenemos "resume" simple porque la app
-                // detiene el buffer. Podríamos reconstruirlo, pero en PWA iOS a veces
-                // esto ni se ejecuta bien con Web Audio API. Lo dejamos como hook listo.
+                const player = this.players[this.activePlayerIdx];
+                player.play();
+                navigator.mediaSession.playbackState = "playing";
             });
             navigator.mediaSession.setActionHandler('pause', () => {
                 this.stopCurrentSound();
-                // Deberíamos despachar un evento para que la UI se entere
                 document.dispatchEvent(new CustomEvent('mimir:pause'));
             });
         }
