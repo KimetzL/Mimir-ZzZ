@@ -8,6 +8,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Inicializar Motor
     const engine = new AudioEngine();
+    engine.preloadSounds();
+
+    // Desbloquear AudioContext proactivamente en el primer toque del usuario (crítico para iOS)
+    const unlockAudioContext = () => {
+        if (engine.ctx) {
+            if (engine.ctx.state === 'suspended') {
+                engine.ctx.resume().then(() => {
+                    engine.playSilenceToUnlock();
+                }).catch(err => console.warn('Error al reanudar AudioContext:', err));
+            } else {
+                engine.playSilenceToUnlock();
+            }
+        }
+        document.removeEventListener('touchstart', unlockAudioContext);
+        document.removeEventListener('click', unlockAudioContext);
+    };
+    document.addEventListener('touchstart', unlockAudioContext, { passive: true, once: true });
+    document.addEventListener('click', unlockAudioContext, { passive: true, once: true });
     
     // Elementos DOM
     const soundCards = document.querySelectorAll('.sound-card');

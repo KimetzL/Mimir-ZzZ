@@ -34,14 +34,10 @@
 
         <!-- Contenido principal: Grid de sonidos -->
         <main class="sound-grid">
-            <!-- Los botones de sonido se inyectarán vía JS o se crearán estáticos aquí -->
+            <!-- Los 4 sonidos disponibles y activos en la parte superior -->
             <button class="sound-card" data-sound="white" aria-label="Ruido Blanco">
                 <div class="icon">🧊</div>
                 <span>Ruido Blanco</span>
-            </button>
-            <button class="sound-card disabled" data-sound="pink" aria-label="Ruido Rosa (Próximamente)">
-                <div class="icon">🌸</div>
-                <span>Ruido Rosa</span>
             </button>
             <button class="sound-card" data-sound="brown" aria-label="Ruido Marrón">
                 <div class="icon">🪵</div>
@@ -51,11 +47,15 @@
                 <div class="icon">🌿</div>
                 <span>Ruido Verde</span>
             </button>
-            
-            <!-- Placeholders para audios mp3 (Lluvia, Olas, Fuego, Lofi, etc) -->
             <button class="sound-card" data-sound="rain" aria-label="Lluvia">
                 <div class="icon">🌧️</div>
                 <span>Lluvia</span>
+            </button>
+            
+            <!-- Sonidos no disponibles / Próximamente (oscuros) -->
+            <button class="sound-card disabled" data-sound="pink" aria-label="Ruido Rosa (Próximamente)">
+                <div class="icon">🌸</div>
+                <span>Ruido Rosa</span>
             </button>
             <button class="sound-card disabled" data-sound="waves" aria-label="Olas (Próximamente)">
                 <div class="icon">🌊</div>

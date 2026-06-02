@@ -34,11 +34,62 @@ class AudioEngine {
             this.masterGain = this.ctx.createGain();
             this.masterGain.connect(this.ctx.destination);
             // Volumen inicial (puede ser sobrescrito por localStorage)
-            this.masterGain.gain.value = 0.5;
+            const savedVol = localStorage.getItem('mimir_vol');
+            this.masterGain.gain.value = savedVol !== null ? parseFloat(savedVol) : 0.5;
             
             console.log("AudioContext inicializado:", this.ctx.state);
-        } else if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
+        }
+        
+        // ¡Importante para iOS! Si está suspendido por políticas de auto-reproducción, reanudarlo
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume().then(() => {
+                console.log("AudioContext reanudado con éxito.");
+                this.playSilenceToUnlock();
+            }).catch(err => {
+                console.error("Error al reanudar AudioContext:", err);
+            });
+        } else {
+            this.playSilenceToUnlock();
+        }
+    }
+
+    /**
+     * Reproduce un buffer silencioso para desbloquear permanentemente el AudioContext en iOS Safari
+     */
+    playSilenceToUnlock() {
+        try {
+            const buffer = this.ctx.createBuffer(1, 1, 22050);
+            const source = this.ctx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.ctx.destination);
+            source.start(0);
+            console.log("AudioContext desbloqueado con búfer silencioso.");
+        } catch (e) {
+            console.warn("No se pudo reproducir el búfer de silencio para desbloquear iOS:", e);
+        }
+    }
+
+    /**
+     * Pre-carga y decodifica todos los archivos de audio en segundo plano.
+     * Esto evita retrasos al hacer clic y permite una reproducción síncrona en iOS.
+     */
+    async preloadSounds() {
+        if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+            this.noiseGen = new NoiseGenerator(this.ctx);
+            
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.connect(this.ctx.destination);
+            const savedVol = localStorage.getItem('mimir_vol');
+            this.masterGain.gain.value = savedVol !== null ? parseFloat(savedVol) : 0.5;
+        }
+
+        const sounds = ['white', 'brown', 'green', 'rain'];
+        for (const sound of sounds) {
+            this.loadSoundBuffer(sound).catch(err => {
+                console.warn(`Error pre-cargando sonido '${sound}':`, err);
+            });
         }
     }
 
@@ -48,6 +99,13 @@ class AudioEngine {
     async loadSoundBuffer(type) {
         if (this.bufferCache[type]) {
             return this.bufferCache[type];
+        }
+        
+        if (!this.loadingPromises) {
+            this.loadingPromises = {};
+        }
+        if (this.loadingPromises[type]) {
+            return this.loadingPromises[type];
         }
 
         let url = null;
@@ -59,17 +117,24 @@ class AudioEngine {
             default: return null;
         }
 
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-            this.bufferCache[type] = audioBuffer;
-            return audioBuffer;
-        } catch (error) {
-            console.error(`Error al cargar o decodificar el audio para '${type}':`, error);
-            return null;
-        }
+        const loadPromise = (async () => {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+                this.bufferCache[type] = audioBuffer;
+                return audioBuffer;
+            } catch (error) {
+                console.error(`Error al cargar o decodificar el audio para '${type}':`, error);
+                return null;
+            } finally {
+                delete this.loadingPromises[type];
+            }
+        })();
+
+        this.loadingPromises[type] = loadPromise;
+        return loadPromise;
     }
 
     /**
