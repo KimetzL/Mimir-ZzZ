@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ----- LÓGICA DE TARJETAS DE SONIDO -----
     soundCards.forEach(card => {
-        card.addEventListener('click', () => {
+        card.addEventListener('click', async () => {
             if (card.classList.contains('disabled')) return;
             
             const soundType = card.dataset.sound;
@@ -52,18 +52,22 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Reproducir nuevo sonido
             const metadata = { title: soundName };
-            const success = engine.playSound(soundType, metadata);
-            
-            if (success) {
-                // Actualizar UI
-                if (activeCard) activeCard.classList.remove('active');
-                card.classList.add('active');
-                activeCard = card;
+            try {
+                const success = await engine.playSound(soundType, metadata);
                 
-                activeSoundName.textContent = soundName;
-                activeSoundIcon.textContent = soundIcon;
-                
-                bottomControls.classList.remove('hidden');
+                if (success) {
+                    // Actualizar UI
+                    if (activeCard) activeCard.classList.remove('active');
+                    card.classList.add('active');
+                    activeCard = card;
+                    
+                    activeSoundName.textContent = soundName;
+                    activeSoundIcon.textContent = soundIcon;
+                    
+                    bottomControls.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Error al reproducir el sonido:", err);
             }
         });
     });

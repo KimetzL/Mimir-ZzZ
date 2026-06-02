@@ -10,8 +10,16 @@ class AudioEngine {
         
         this.fadeDuration = 0.5; // segundos para el fade in/out
         
-        // Cache de buffers generados para no recalcular
+        // Cache de buffers cargados/generados para no recalcular
         this.bufferCache = {};
+
+        // Volúmenes relativos ajustados para que todos suenen al mismo nivel percibido
+        this.soundVolumes = {
+            white: 0.15,  // El ruido blanco es de muy alta frecuencia y energía percibida
+            brown: 0.90,  // El ruido marrón es muy sordo/grave y requiere más amplitud
+            green: 0.45,  // El ruido verde (bosque/naturaleza) tiene nivel medio
+            rain: 0.55    // La lluvia tiene frecuencias mixtas y suena agradable a nivel medio
+        };
     }
 
     /**
@@ -35,41 +43,48 @@ class AudioEngine {
     }
 
     /**
-     * Devuelve el buffer correspondiente al tipo de ruido. Lo genera y cachea si es necesario.
+     * Carga y decodifica un archivo de audio MP3 desde la carpeta local /audio/ de forma asíncrona.
      */
-    getBufferForSound(type) {
+    async loadSoundBuffer(type) {
         if (this.bufferCache[type]) {
             return this.bufferCache[type];
         }
 
-        let buffer = null;
+        let url = null;
         switch (type) {
-            case 'white': buffer = this.noiseGen.generateWhiteNoise(); break;
-            case 'pink': buffer = this.noiseGen.generatePinkNoise(); break;
-            case 'brown': buffer = this.noiseGen.generateBrownNoise(); break;
-            case 'green': buffer = this.noiseGen.generateGreenNoise(); break;
+            case 'white': url = 'audio/White-noise.mp3'; break;
+            case 'brown': url = 'audio/Marron.mp3'; break;
+            case 'green': url = 'audio/Green-noise.mp3'; break;
+            case 'rain': url = 'audio/Lluvia.mp3'; break;
             default: return null;
         }
 
-        if (buffer) {
-            this.bufferCache[type] = buffer;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+            this.bufferCache[type] = audioBuffer;
+            return audioBuffer;
+        } catch (error) {
+            console.error(`Error al cargar o decodificar el audio para '${type}':`, error);
+            return null;
         }
-        return buffer;
     }
 
     /**
-     * Reproduce un sonido específico. Si ya hay uno sonando, hace crossfade.
+     * Reproduce un sonido específico de forma asíncrona. Si ya hay uno sonando, hace crossfade.
      */
-    playSound(type, metadata) {
+    async playSound(type, metadata) {
         if (!this.ctx) this.init();
         
-        const buffer = this.getBufferForSound(type);
+        const buffer = await this.loadSoundBuffer(type);
         if (!buffer) {
             console.warn("Sonido no soportado o en desarrollo:", type);
             return false;
         }
 
-        // Si ya está sonando el mismo, no hacemos nada (o podríamos pausarlo, pero app.js gestiona eso)
+        // Si ya está sonando el mismo, no hacemos nada
         if (this.isPlaying && this.currentSoundType === type) return true;
 
         this.stopCurrentSound(); // Detiene con fade-out rápido
@@ -88,8 +103,11 @@ class AudioEngine {
 
         this.activeSourceNode.start();
         
-        // Fade-in lineal
-        localGain.gain.exponentialRampToValueAtTime(1.0, this.ctx.currentTime + this.fadeDuration);
+        // Obtener volumen relativo calibrado para este sonido
+        const targetVolume = this.soundVolumes[type] || 1.0;
+        
+        // Fade-in exponencial hacia el volumen calibrado
+        localGain.gain.exponentialRampToValueAtTime(targetVolume, this.ctx.currentTime + this.fadeDuration);
 
         // Guardamos referencia a la ganancia en el nodo para poder hacer fade-out
         this.activeSourceNode.fadeGain = localGain;

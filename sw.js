@@ -11,6 +11,10 @@ const STATIC_ASSETS = [
     '/manifest.json',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
+    '/audio/White-noise.mp3',
+    '/audio/Marron.mp3',
+    '/audio/Green-noise.mp3',
+    '/audio/Lluvia.mp3',
     'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap'
 ];
 
@@ -46,11 +50,9 @@ self.addEventListener('fetch', event => {
     // Solo manejamos peticiones GET
     if (event.request.method !== 'GET') return;
 
-    // Archivos de audio (futuro soporte) necesitan manejar Range Requests para Safari/iOS
-    if (event.request.headers.has('range') || event.request.url.endsWith('.mp3')) {
-        // Para simplificar la implementación actual sin librerías externas (Workbox),
-        // dejamos que la red maneje los Range requests para evitar fallos de audio en iOS.
-        // Cuando se añadan los MP3 reales, se recomienda usar Workbox RangeRequestsPlugin.
+    // Solo evitamos el cache si la petición tiene cabecera 'range' (usada por <audio> en iOS/Safari).
+    // Como usamos standard fetch y Web Audio API, no requerimos Range.
+    if (event.request.headers.has('range')) {
         return; 
     }
 
