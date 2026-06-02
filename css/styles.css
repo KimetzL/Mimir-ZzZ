@@ -253,6 +253,7 @@ input[type=range]::-webkit-slider-runnable-track {
     z-index: 100;
     display: flex;
     align-items: flex-end;
+    justify-content: center;
     transition: opacity var(--transition-smooth);
 }
 .timer-modal.hidden { opacity: 0; pointer-events: none; }
@@ -261,6 +262,7 @@ input[type=range]::-webkit-slider-runnable-track {
 .timer-modal-content {
     background: var(--bg-light);
     width: 100%;
+    max-width: 500px;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     padding: 2rem 1.5rem;
     padding-bottom: max(env(safe-area-inset-bottom, 2rem), 2rem);
@@ -281,7 +283,7 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .timer-presets {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0.5rem;
     margin-bottom: 1.5rem;
 }
