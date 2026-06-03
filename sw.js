@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mimir-cache-v1';
+const CACHE_NAME = 'mimir-cache-v2';
 
 // Recursos estáticos básicos que siempre deben estar disponibles offline
 const STATIC_ASSETS = [
@@ -15,6 +15,12 @@ const STATIC_ASSETS = [
     '/audio/Marron.mp3',
     '/audio/Green-noise.mp3',
     '/audio/Lluvia.mp3',
+    '/audio/Pink-noise.mp3',
+    '/audio/Waves.mp3',
+    '/audio/Fire-crackling.mp3',
+    '/audio/Lofi.mp3',
+    '/audio/Coffee-shop.mp3',
+    '/audio/Fan.mp3',
     'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap'
 ];
 

@@ -19,7 +19,27 @@ class AudioEngine {
             white: 0.15,
             brown: 0.90,
             green: 0.45,
-            rain: 0.55
+            rain: 0.55,
+            pink: 0.35,
+            waves: 0.50,
+            fire: 0.45,
+            lofi: 0.30,
+            cafe: 0.40,
+            fan: 0.40
+        };
+
+        // Mapeo de archivos de audio
+        this.soundUrls = {
+            white: 'audio/White-noise.mp3',
+            brown: 'audio/Marron.mp3',
+            green: 'audio/Green-noise.mp3',
+            rain: 'audio/Lluvia.mp3',
+            pink: 'audio/Pink-noise.mp3',
+            waves: 'audio/Waves.mp3',
+            fire: 'audio/Fire-crackling.mp3',
+            lofi: 'audio/Lofi.mp3',
+            cafe: 'audio/Coffee-shop.mp3',
+            fan: 'audio/Fan.mp3'
         };
         
         // Cargar volumen de localStorage
@@ -45,15 +65,8 @@ class AudioEngine {
      * Pre-carga todos los archivos de audio en segundo plano.
      */
     preloadSounds() {
-        const sounds = ['white', 'brown', 'green', 'rain'];
-        sounds.forEach(sound => {
-            let url = null;
-            switch (sound) {
-                case 'white': url = 'audio/White-noise.mp3'; break;
-                case 'brown': url = 'audio/Marron.mp3'; break;
-                case 'green': url = 'audio/Green-noise.mp3'; break;
-                case 'rain': url = 'audio/Lluvia.mp3'; break;
-            }
+        Object.keys(this.soundUrls).forEach(sound => {
+            const url = this.soundUrls[sound];
             if (url) {
                 const tempAudio = new Audio();
                 tempAudio.preload = "auto";
@@ -79,14 +92,8 @@ class AudioEngine {
         const nextPlayer = this.players[nextPlayerIdx];
         const prevPlayer = this.players[this.activePlayerIdx];
         
-        let url = null;
-        switch (type) {
-            case 'white': url = 'audio/White-noise.mp3'; break;
-            case 'brown': url = 'audio/Marron.mp3'; break;
-            case 'green': url = 'audio/Green-noise.mp3'; break;
-            case 'rain': url = 'audio/Lluvia.mp3'; break;
-            default: return false;
-        }
+        const url = this.soundUrls[type];
+        if (!url) return false;
         
         nextPlayer.src = url;
         const relativeVolume = this.soundVolumes[type] || 1.0;
