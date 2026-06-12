@@ -48,17 +48,30 @@ class AudioEngine {
     }
 
     /**
-     * Mantenido por compatibilidad con inicializaciones en app.js
+     * Desbloquea proactivamente los elementos de audio para evitar bloqueos en iOS/Safari.
      */
-    init() {
-        console.log("AudioEngine inicializado con soporte HTML5 Audio (iOS background y modo silencio bypass).");
+    unlock() {
+        const silentSrc = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
+        this.players.forEach(player => {
+            const originalSrc = player.src;
+            player.src = silentSrc;
+            player.play()
+                .then(() => {
+                    player.pause();
+                    player.src = originalSrc;
+                })
+                .catch(err => {
+                    // Ignorar errores del reproductor vacío
+                    console.log("Audio player unlocked");
+                });
+        });
     }
 
     /**
-     * Mantenido para desbloqueo silencioso compatible
+     * Mantenido por compatibilidad
      */
-    playSilenceToUnlock() {
-        // En HTML5 Audio, el primer play inicia la reproducción nativa dentro del user gesture.
+    init() {
+        console.log("AudioEngine inicializado.");
     }
 
     /**

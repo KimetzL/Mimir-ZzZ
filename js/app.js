@@ -10,22 +10,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const engine = new AudioEngine();
     engine.preloadSounds();
 
-    // Desbloquear AudioContext proactivamente en el primer toque del usuario (crítico para iOS)
-    const unlockAudioContext = () => {
-        if (engine.ctx) {
-            if (engine.ctx.state === 'suspended') {
-                engine.ctx.resume().then(() => {
-                    engine.playSilenceToUnlock();
-                }).catch(err => console.warn('Error al reanudar AudioContext:', err));
-            } else {
-                engine.playSilenceToUnlock();
-            }
+    // Desbloquear reproductores de audio proactivamente en el primer toque del usuario (crítico para iOS)
+    const unlockAudio = () => {
+        if (typeof engine.unlock === 'function') {
+            engine.unlock();
         }
-        document.removeEventListener('touchstart', unlockAudioContext);
-        document.removeEventListener('click', unlockAudioContext);
+        document.removeEventListener('touchstart', unlockAudio);
+        document.removeEventListener('click', unlockAudio);
     };
-    document.addEventListener('touchstart', unlockAudioContext, { passive: true, once: true });
-    document.addEventListener('click', unlockAudioContext, { passive: true, once: true });
+    document.addEventListener('touchstart', unlockAudio, { passive: true, once: true });
+    document.addEventListener('click', unlockAudio, { passive: true, once: true });
     
     // Elementos DOM
     const soundCards = document.querySelectorAll('.sound-card');
@@ -59,8 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const soundName = card.querySelector('span').textContent;
             const soundIcon = card.querySelector('.icon').textContent;
             
-            // Inicializar engine si es el primer click
-            if (!engine.ctx) engine.init();
+            // Inicializar engine si es el primer click (opcional ya que se crea al inicio)
+            engine.init();
             
             // Si hacemos clic en la tarjeta que ya está sonando, la pausamos
             if (activeCard === card) {
