@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mimir-cache-v2';
+const CACHE_NAME = 'mimir-cache-v3';
 
 // Recursos estáticos básicos que siempre deben estar disponibles offline
 const STATIC_ASSETS = [
@@ -7,7 +7,6 @@ const STATIC_ASSETS = [
     '/css/styles.css',
     '/js/app.js',
     '/js/audio-engine.js',
-    '/js/noise-generator.js',
     '/manifest.json',
     '/icons/icon-192.png',
     '/icons/icon-512.png',

@@ -68,13 +68,6 @@ class AudioEngine {
     }
 
     /**
-     * Mantenido por compatibilidad
-     */
-    init() {
-        console.log("AudioEngine inicializado.");
-    }
-
-    /**
      * Pre-carga todos los archivos de audio en segundo plano.
      */
     preloadSounds() {
@@ -86,13 +79,6 @@ class AudioEngine {
                 tempAudio.src = url;
             }
         });
-    }
-
-    /**
-     * Método dummy para compatibilidad
-     */
-    async loadSoundBuffer(type) {
-        return true;
     }
 
     /**

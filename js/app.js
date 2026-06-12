@@ -53,9 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const soundName = card.querySelector('span').textContent;
             const soundIcon = card.querySelector('.icon').textContent;
             
-            // Inicializar engine si es el primer click (opcional ya que se crea al inicio)
-            engine.init();
-            
             // Si hacemos clic en la tarjeta que ya está sonando, la pausamos
             if (activeCard === card) {
                 stopPlayback();

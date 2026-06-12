@@ -78,12 +78,6 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
-.subtitle {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    margin-top: 0.25rem;
-}
-
 /* --- GRID DE SONIDOS --- */
 .sound-grid {
     display: grid;
