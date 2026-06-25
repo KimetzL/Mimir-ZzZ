@@ -184,6 +184,22 @@ body {
     filter: grayscale(1);
 }
 
+.sound-card.loading {
+    border-color: rgba(255, 255, 255, 0.3);
+    animation: cardPulse 1s infinite alternate ease-in-out;
+}
+
+@keyframes cardPulse {
+    0% {
+        opacity: 0.6;
+        transform: scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1.02);
+    }
+}
+
 /* --- BOTTOM CONTROLS --- */
 .bottom-controls {
     position: absolute;

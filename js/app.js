@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Reproducir nuevo sonido
             const metadata = { title: soundName };
+            card.classList.add('loading');
             try {
                 const success = await engine.playSound(soundType, metadata);
                 
@@ -77,6 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (err) {
                 console.error("Error al reproducir el sonido:", err);
+            } finally {
+                card.classList.remove('loading');
             }
         });
     });
