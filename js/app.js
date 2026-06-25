@@ -157,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         btnCancelTimer.classList.remove('hidden');
         timerModal.classList.add('hidden');
+        btnTimer.classList.add('active');
         
         updateTimerDisplay();
         timerInterval = setInterval(updateTimerDisplay, 1000);
@@ -168,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         timerEndTime = null;
         timerDisplay.textContent = "";
         btnCancelTimer.classList.add('hidden');
+        btnTimer.classList.remove('active');
     }
     
     function updateTimerDisplay() {

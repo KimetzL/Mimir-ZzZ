@@ -33,6 +33,9 @@
         <!-- Cabecera -->
         <header class="app-header">
             <h1>Mimir ZzZ</h1>
+            <button id="btn-timer" class="timer-trigger-btn" aria-label="Temporizador">
+                ⏱️ <span id="timer-display"></span>
+            </button>
         </header>
 
         <!-- Contenido principal: Grid de sonidos -->
@@ -84,24 +87,20 @@
 
         <!-- Barra inferior de control (Aparece cuando hay sonido activo) -->
         <div class="bottom-controls hidden" id="bottom-controls">
-            <div class="active-sound-info">
-                <span id="active-sound-icon"></span>
-                <span id="active-sound-name">Reproduciendo</span>
-            </div>
-            
-            <div class="controls-actions">
-                <div class="volume-control">
-                    <span>🔉</span>
-                    <input type="range" id="master-volume" min="0" max="1" step="0.01" value="0.5">
+            <div class="bottom-controls-header">
+                <div class="active-sound-info">
+                    <span id="active-sound-icon"></span>
+                    <span id="active-sound-name">Reproduciendo</span>
                 </div>
-                
-                <button id="btn-timer" class="control-btn" aria-label="Temporizador">
-                    ⏱️ <span id="timer-display"></span>
-                </button>
-                
                 <button id="btn-stop" class="control-btn play-pause active" aria-label="Detener">
                     ⏹️
                 </button>
+            </div>
+            
+            <div class="volume-control">
+                <span>🔉</span>
+                <input type="range" id="master-volume" min="0" max="1" step="0.01" value="0.5">
+                <span>🔊</span>
             </div>
         </div>
     </div>
