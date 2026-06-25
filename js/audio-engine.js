@@ -3,25 +3,25 @@ class AudioEngine {
         this.buffers = {}; // Caché de AudioBuffer decodificados: { type: AudioBuffer }
         this.activeSources = {}; // Nodos de origen de audio activos en reproducción: { type: AudioBufferSourceNode }
         this.gainNodes = {}; // Nodos de control de ganancia (volumen): { type: GainNode }
-        
+
         this.activeSoundType = null;
         this.isPlaying = false;
-        
+
         this.fadeDuration = 600; // milisegundos para el crossfade
         this.fadeIntervals = [];
-        
+
         // Volúmenes relativos ajustados para que todos suenen al mismo nivel percibido
         this.soundVolumes = {
-            white: 0.15,
-            brown: 0.90,
-            green: 0.45,
+            white: 0.03,
+            brown: 0.75,
+            green: 0.35,
             rain: 0.55,
-            pink: 0.35,
+            pink: 0.25,
             waves: 0.50,
-            fire: 0.45,
-            lofi: 0.30,
-            cafe: 0.40,
-            fan: 0.40
+            fire: 0.50,
+            lofi: 0.35,
+            cafe: 0.50,
+            fan: 0.60
         };
 
         // Mapeo de archivos de audio
@@ -37,7 +37,7 @@ class AudioEngine {
             cafe: 'audio/Coffee-shop.mp3',
             fan: 'audio/Fan.mp3'
         };
-        
+
         // Cargar volumen de localStorage
         const savedVol = localStorage.getItem('mimir_vol');
         this.masterVolumeValue = savedVol !== null ? parseFloat(savedVol) : 0.5;
@@ -109,16 +109,16 @@ class AudioEngine {
      */
     async getAudioBuffer(type) {
         if (this.buffers[type]) return this.buffers[type];
-        
+
         const url = this.soundUrls[type];
         if (!url) return null;
-        
+
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Fallo al descargar sonido en ${url}`);
-        
+
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await this.decodeAudio(arrayBuffer);
-        
+
         this.buffers[type] = audioBuffer;
         return audioBuffer;
     }
@@ -140,7 +140,7 @@ class AudioEngine {
      */
     async playSound(type, metadata) {
         if (this.isPlaying && this.activeSoundType === type) return true;
-        
+
         // Asegurar que el contexto de audio esté corriendo
         if (!this.ctx) {
             this.unlock();
@@ -148,9 +148,9 @@ class AudioEngine {
         if (this.ctx && this.ctx.state === 'suspended') {
             await this.ctx.resume().catch(e => console.error("Error al resumir AudioContext en playSound", e));
         }
-        
+
         this.loadingSoundType = type;
-        
+
         let buffer;
         try {
             buffer = await this.getAudioBuffer(type);
@@ -161,37 +161,37 @@ class AudioEngine {
             }
             return false;
         }
-        
+
         // Si el usuario cambió a otro sonido durante la decodificación, abortamos la reproducción
         if (this.loadingSoundType !== type) {
             return false;
         }
-        
+
         const prevSoundType = this.activeSoundType;
         const nextGain = this.getOrCreateGainNode(type);
         if (!nextGain) return false;
-        
+
         // Crear un nuevo AudioBufferSourceNode (los nodos fuente no pueden reutilizarse)
         const nextSource = this.ctx.createBufferSource();
         nextSource.buffer = buffer;
         nextSource.loop = true; // Activa bucle perfecto a nivel de muestras (gapless)
         nextSource.connect(nextGain);
-        
+
         this.activeSources[type] = nextSource;
-        
+
         const relativeVolume = this.soundVolumes[type] || 1.0;
         const targetVol = relativeVolume * this.masterVolumeValue;
-        
+
         // Iniciar en silencio absoluto para el crossfade suave
         nextGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
         nextSource.start(0);
-        
+
         this.crossfade(prevSoundType, type, targetVol);
-        
+
         this.activeSoundType = type;
         this.isPlaying = true;
         this.loadingSoundType = null;
-        
+
         this.updateMediaSession(metadata);
         return true;
     }
@@ -202,44 +202,44 @@ class AudioEngine {
     crossfade(prevType, nextType, targetVolume) {
         this.fadeIntervals.forEach(interval => clearInterval(interval));
         this.fadeIntervals = [];
-        
+
         const steps = 30;
         const stepTime = this.fadeDuration / steps;
-        
+
         const nextGain = this.gainNodes[nextType];
         const nextVolStep = targetVolume / steps;
-        
+
         const prevGain = prevType ? this.gainNodes[prevType] : null;
         const prevSource = prevType ? this.activeSources[prevType] : null;
-        
+
         let prevStartVol = 0;
         if (this.isPlaying && prevGain) {
             prevStartVol = prevGain.gain.value;
         }
         const prevVolStep = prevStartVol / steps;
-        
+
         let currentStep = 0;
-        
+
         const interval = setInterval(() => {
             currentStep++;
-            
+
             // Subir volumen del nuevo
             const nextVol = Math.max(0, Math.min(1, nextVolStep * currentStep));
             if (nextGain) {
                 nextGain.gain.value = nextVol;
             }
-            
+
             // Bajar volumen del anterior
             if (this.isPlaying && prevGain) {
                 const prevVol = Math.max(0, prevStartVol - (prevVolStep * currentStep));
                 prevGain.gain.value = prevVol;
             }
-            
+
             if (currentStep >= steps) {
                 if (nextGain) {
                     nextGain.gain.value = targetVolume;
                 }
-                
+
                 if (this.isPlaying && prevGain && prevSource) {
                     prevGain.gain.value = 0;
                     try {
@@ -252,7 +252,7 @@ class AudioEngine {
                 clearInterval(interval);
             }
         }, stepTime);
-        
+
         this.fadeIntervals.push(interval);
     }
 
@@ -261,38 +261,38 @@ class AudioEngine {
      */
     stopCurrentSound(customFadeTime = null) {
         this.loadingSoundType = null; // Abortar cualquier carga asíncrona en curso
-        
+
         if (!this.isPlaying || !this.activeSoundType) return;
-        
+
         const type = this.activeSoundType;
         const source = this.activeSources[type];
         const gainNode = this.gainNodes[type];
-        
+
         if (!source || !gainNode) {
             this.isPlaying = false;
             this.activeSoundType = null;
             return;
         }
-        
+
         const fadeTime = customFadeTime !== null ? customFadeTime : this.fadeDuration;
-        
+
         this.isPlaying = false;
         this.activeSoundType = null;
-        
+
         this.fadeIntervals.forEach(interval => clearInterval(interval));
         this.fadeIntervals = [];
-        
+
         const steps = 20;
         const stepTime = fadeTime / steps;
         const startVol = gainNode.gain.value;
         const volStep = startVol / steps;
         let currentStep = 0;
-        
+
         const interval = setInterval(() => {
             currentStep++;
             const currentVol = Math.max(0, startVol - (volStep * currentStep));
             gainNode.gain.value = currentVol;
-            
+
             if (currentStep >= steps) {
                 gainNode.gain.value = 0;
                 try {
@@ -304,9 +304,9 @@ class AudioEngine {
                 clearInterval(interval);
             }
         }, stepTime);
-        
+
         this.fadeIntervals.push(interval);
-        
+
         if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = "paused";
         }
@@ -314,7 +314,7 @@ class AudioEngine {
 
     setMasterVolume(value) {
         this.masterVolumeValue = Math.max(0, Math.min(1, value));
-        
+
         if (this.isPlaying && this.activeSoundType) {
             const gainNode = this.gainNodes[this.activeSoundType];
             if (gainNode) {
@@ -323,35 +323,35 @@ class AudioEngine {
             }
         }
     }
-    
+
     fadeOutForTimer(durationSeconds) {
-         if (!this.isPlaying || !this.activeSoundType) return;
-         
-         const type = this.activeSoundType;
-         const gainNode = this.gainNodes[type];
-         if (!gainNode) return;
-         
-         const startVol = gainNode.gain.value;
-         const steps = 50;
-         const stepTime = (durationSeconds * 1000) / steps;
-         const volStep = startVol / steps;
-         let currentStep = 0;
-         
-         this.fadeIntervals.forEach(interval => clearInterval(interval));
-         this.fadeIntervals = [];
-         
-         const interval = setInterval(() => {
-             currentStep++;
-             const currentVol = Math.max(0, startVol - (volStep * currentStep));
-             gainNode.gain.value = currentVol;
-             
-             if (currentStep >= steps) {
-                 this.stopCurrentSound(100);
-                 clearInterval(interval);
-             }
-         }, stepTime);
-         
-         this.fadeIntervals.push(interval);
+        if (!this.isPlaying || !this.activeSoundType) return;
+
+        const type = this.activeSoundType;
+        const gainNode = this.gainNodes[type];
+        if (!gainNode) return;
+
+        const startVol = gainNode.gain.value;
+        const steps = 50;
+        const stepTime = (durationSeconds * 1000) / steps;
+        const volStep = startVol / steps;
+        let currentStep = 0;
+
+        this.fadeIntervals.forEach(interval => clearInterval(interval));
+        this.fadeIntervals = [];
+
+        const interval = setInterval(() => {
+            currentStep++;
+            const currentVol = Math.max(0, startVol - (volStep * currentStep));
+            gainNode.gain.value = currentVol;
+
+            if (currentStep >= steps) {
+                this.stopCurrentSound(100);
+                clearInterval(interval);
+            }
+        }, stepTime);
+
+        this.fadeIntervals.push(interval);
     }
 
     /**
@@ -377,7 +377,7 @@ class AudioEngine {
                     const gainNode = this.gainNodes[this.activeSoundType];
                     const buffer = this.buffers[this.activeSoundType];
                     const source = this.activeSources[this.activeSoundType];
-                    
+
                     if (buffer && !source && this.ctx) {
                         const newSource = this.ctx.createBufferSource();
                         newSource.buffer = buffer;
