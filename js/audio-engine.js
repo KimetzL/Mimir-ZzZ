@@ -13,15 +13,15 @@ class AudioEngine {
         // Volúmenes relativos ajustados para que todos suenen al mismo nivel percibido
         this.soundVolumes = {
             white: 0.03,
-            brown: 0.75,
+            brown: 0.70,
             green: 0.35,
             rain: 0.55,
-            pink: 0.25,
+            pink: 0.20,
             waves: 0.50,
-            fire: 0.50,
-            lofi: 0.35,
-            cafe: 0.50,
-            fan: 0.60
+            fire: 0.55,
+            lofi: 0.45,
+            cafe: 0.60,
+            fan: 0.70
         };
 
         // Mapeo de archivos de audio
