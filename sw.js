@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mimir-cache-v3';
+const CACHE_NAME = 'mimir-cache-v4';
 
 // Recursos estáticos básicos que siempre deben estar disponibles offline
 const STATIC_ASSETS = [
